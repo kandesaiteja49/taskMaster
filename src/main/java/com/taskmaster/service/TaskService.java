@@ -3,7 +3,6 @@ package com.taskmaster.service;
 import com.taskmaster.exception.ResourceNotFoundException;
 import com.taskmaster.model.*;
 import com.taskmaster.repository.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -12,13 +11,19 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class TaskService {
 
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final NotificationService notificationService;
+
+    public TaskService(TaskRepository taskRepository, UserRepository userRepository, TeamRepository teamRepository, NotificationService notificationService) {
+        this.taskRepository = taskRepository;
+        this.userRepository = userRepository;
+        this.teamRepository = teamRepository;
+        this.notificationService = notificationService;
+    }
 
     @Transactional
     public Task createTask(Task task, User creator, Team team) {
@@ -42,8 +47,8 @@ public class TaskService {
         if (search != null && !search.isBlank()) {
             spec = spec.and((root, query, cb) ->
                 cb.or(
-                    cb.like(cb.toLowerCase(root.get("title")), "%" + search.toLowerCase() + "%"),
-                    cb.like(cb.toLowerCase(root.get("description")), "%" + search.toLowerCase() + "%")
+                    cb.like(cb.lower(root.get("title").as(String.class)), "%" + search.toLowerCase() + "%"),
+                    cb.like(cb.lower(root.get("description").as(String.class)), "%" + search.toLowerCase() + "%")
                 )
             );
         }

@@ -4,7 +4,6 @@ import com.taskmaster.dto.TeamRequest;
 import com.taskmaster.model.*;
 import com.taskmaster.repository.UserRepository;
 import com.taskmaster.service.TeamService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -14,11 +13,15 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/teams")
-@RequiredArgsConstructor
 public class TeamController {
 
     private final TeamService teamService;
     private final UserRepository userRepository;
+
+    public TeamController(TeamService teamService, UserRepository userRepository) {
+        this.teamService = teamService;
+        this.userRepository = userRepository;
+    }
 
     @PostMapping
     public ResponseEntity<Team> createTeam(Authentication authentication, @RequestBody TeamRequest request) {

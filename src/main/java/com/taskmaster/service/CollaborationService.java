@@ -3,7 +3,6 @@ package com.taskmaster.service;
 import com.taskmaster.exception.ResourceNotFoundException;
 import com.taskmaster.model.*;
 import com.taskmaster.repository.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,13 +13,19 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class CollaborationService {
 
     private final CommentRepository commentRepository;
     private final AttachmentRepository attachmentRepository;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
+
+    public CollaborationService(CommentRepository commentRepository, AttachmentRepository attachmentRepository, TaskRepository taskRepository, UserRepository userRepository) {
+        this.commentRepository = commentRepository;
+        this.attachmentRepository = attachmentRepository;
+        this.taskRepository = taskRepository;
+        this.userRepository = userRepository;
+    }
 
     @Transactional
     public Comment addComment(UUID taskId, User user, String content) {
@@ -45,7 +50,6 @@ public class CollaborationService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
-        // Simple local storage implementation for demonstration
         String uploadDir = "uploads/";
         Files.createDirectories(Paths.get(uploadDir));
         String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
