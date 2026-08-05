@@ -5,11 +5,11 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import java.security.Key;
+import jakarta.annotation.PostConstruct;
+import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.Optional;
 
@@ -22,7 +22,7 @@ public class JwtTokenProvider {
     @Value("${app.jwt.expiration-ms}")
     private long jwtExpirationMs;
 
-    private Key key;
+    private SecretKey key;
 
     @PostConstruct
     public void init() {

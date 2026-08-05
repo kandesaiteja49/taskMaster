@@ -5,7 +5,6 @@ import com.taskmaster.model.*;
 import com.taskmaster.repository.UserRepository;
 import com.taskmaster.repository.TeamRepository;
 import com.taskmaster.service.TaskService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -15,13 +14,19 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/tasks")
-@RequiredArgsConstructor
 public class TaskController {
 
     private final TaskService taskService;
     private final UserRepository userRepository;
     private final TeamRepository teamRepository;
     private final com.taskmaster.service.AiTaskService aiTaskService;
+
+    public TaskController(TaskService taskService, UserRepository userRepository, TeamRepository teamRepository, com.taskmaster.service.AiTaskService aiTaskService) {
+        this.taskService = taskService;
+        this.userRepository = userRepository;
+        this.teamRepository = teamRepository;
+        this.aiTaskService = aiTaskService;
+    }
 
     @PostMapping
     public ResponseEntity<Task> createTask(Authentication authentication, @RequestBody TaskRequest request) {
@@ -75,14 +80,7 @@ public class TaskController {
         return ResponseEntity.ok(taskService.updateTask(id, task));
     }
 
-    @PatchMapping("/{id}/generate-description")
-    public ResponseEntity<String> generateDescription(@PathVariable UUID id) {
-        Task task = taskService.getTaskById(id);
-        return ResponseEntity.ok(aiTaskService.generateDescription(task.getTitle()));
-    }
-
     @DeleteMapping("/{id}")
-
     public ResponseEntity<Void> deleteTask(@PathVariable UUID id) {
         taskService.deleteTask(id);
         return ResponseEntity.noContent().build();
@@ -91,5 +89,11 @@ public class TaskController {
     @PatchMapping("/{id}/assign")
     public ResponseEntity<Task> assignTask(@PathVariable UUID id, @RequestParam UUID userId) {
         return ResponseEntity.ok(taskService.assignTask(id, userId));
+    }
+
+    @PatchMapping("/{id}/generate-description")
+    public ResponseEntity<String> generateDescription(@PathVariable UUID id) {
+        Task task = taskService.getTaskById(id);
+        return ResponseEntity.ok(aiTaskService.generateDescription(task.getTitle()));
     }
 }

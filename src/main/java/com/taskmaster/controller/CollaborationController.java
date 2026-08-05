@@ -3,7 +3,6 @@ package com.taskmaster.controller;
 import com.taskmaster.model.*;
 import com.taskmaster.repository.UserRepository;
 import com.taskmaster.service.CollaborationService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -15,11 +14,15 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/tasks/{taskId}")
-@RequiredArgsConstructor
 public class CollaborationController {
 
     private final CollaborationService collaborationService;
     private final UserRepository userRepository;
+
+    public CollaborationController(CollaborationService collaborationService, UserRepository userRepository) {
+        this.collaborationService = collaborationService;
+        this.userRepository = userRepository;
+    }
 
     @PostMapping("/comments")
     public ResponseEntity<Comment> addComment(@PathVariable UUID taskId, Authentication authentication, @RequestBody String content) {

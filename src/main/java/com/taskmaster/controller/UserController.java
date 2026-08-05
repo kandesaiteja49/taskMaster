@@ -3,20 +3,21 @@ package com.taskmaster.controller;
 import com.taskmaster.dto.UserUpdateRequest;
 import com.taskmaster.model.User;
 import com.taskmaster.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
-@RequiredArgsConstructor
 public class UserController {
 
     private final UserRepository userRepository;
+
+    public UserController(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @GetMapping("/me")
     public ResponseEntity<User> getCurrentUser(Authentication authentication) {

@@ -5,7 +5,6 @@ import com.taskmaster.model.User;
 import com.taskmaster.repository.UserRepository;
 import com.taskmaster.security.JwtTokenProvider;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
@@ -18,13 +17,19 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+
+    public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider) {
+        this.authenticationManager = authenticationManager;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.tokenProvider = tokenProvider;
+    }
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {

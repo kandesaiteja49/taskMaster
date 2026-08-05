@@ -3,19 +3,23 @@ package com.taskmaster.service;
 import com.taskmaster.exception.ResourceNotFoundException;
 import com.taskmaster.model.*;
 import com.taskmaster.repository.*;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class TeamService {
 
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
+
+    public TeamService(TeamRepository teamRepository, UserRepository userRepository) {
+        this.teamRepository = teamRepository;
+        this.userRepository = userRepository;
+    }
 
     @Transactional
     public Team createTeam(Team team, User owner) {
@@ -35,7 +39,7 @@ public class TeamService {
     public Set<Team> getUserTeams(User user) {
         return teamRepository.findAll().stream()
                 .filter(team -> team.getMembers().contains(user))
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
     }
 
     public Team getTeamById(UUID id) {
