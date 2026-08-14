@@ -1,6 +1,6 @@
 # TaskMaster - Collaborative Task Tracking System
 
-TaskMaster is a professional-grade backend system designed to streamline team collaboration and task management. Built with a scalable architecture, it enables users to organize work into teams, manage task lifecycles with dynamic filtering, and communicate in real-time.
+TaskMaster is a professional-grade backend system designed to streamline team collaboration and task management. Built with a scalable architecture, it ensures strict data isolation and security to prevent unauthorized access to sensitive team data.
 
 ---
 
@@ -9,13 +9,13 @@ TaskMaster is a professional-grade backend system designed to streamline team co
 ### 🔐 Identity & Security
 - **Stateless Authentication**: Implements JSON Web Tokens (JWT) for secure, scalable session management.
 - **Cryptographic Hashing**: Uses BCrypt for industry-standard password encryption.
-- **Role-Based Access**: Ensures users can only access teams and tasks they are authorized to view.
-- **Profile Management**: Complete API for managing user identities and personal details.
+- **Strict Ownership Guards**: Implements object-level authorization to ensure users can only access, edit, or delete tasks within their own teams.
+- **Secure Secret Management**: Supports environment-variable-based configuration for sensitive keys (JWT Secret).
 
 ### 📋 Advanced Task Management
 - **Comprehensive Lifecycle**: Full CRUD operations for tasks with attributes for priority, status, and deadlines.
-- **Dynamic Search Engine**: Powerful filtering system using JPA Specifications, allowing users to search tasks by title, description, assignee, or status.
-- **Assignment Workflow**: Precise task assignment logic to maintain accountability within teams.
+- **Secure Dynamic Search**: A powerful filtering system using JPA Specifications that automatically restricts results to the user's authorized teams.
+- **Validated Assignment**: Ensures tasks can only be assigned to users who are verified members of the task's associated team.
 
 ### 👥 Team Collaboration
 - **Organization Units**: Logical grouping of users into teams to isolate projects and workloads.
@@ -28,17 +28,20 @@ TaskMaster is a professional-grade backend system designed to streamline team co
 
 ---
 
-## 🏗 Architecture Overview
+## 🏗 Architecture & Security Design
 
-TaskMaster follows a **Layered Architecture** pattern to ensure separation of concerns and maintainability:
+TaskMaster follows a **Layered Architecture** pattern to ensure separation of concerns:
 
 1.  **Controller Layer**: REST Endpoints that handle incoming HTTP requests and validate input using DTOs.
-2.  **Service Layer**: Contains the core business logic, security checks, and orchestration between different repositories.
-3.  **Repository Layer**: Leverages Spring Data JPA for abstracting database interactions and providing high-performance queries.
-4.  **Model Layer**: Defines the domain entities and their relational mappings (One-to-Many, Many-to-Many).
+2.  **Service Layer**: Contains the core business logic and **Security Guards** (verifying team membership before every sensitive operation).
+3.  **Repository Layer**: Leverages Spring Data JPA for abstracting database interactions.
+4.  **Model Layer**: Defines domain entities and relational mappings.
 
-### 🛡 Security Workflow
-`User Register` $\rightarrow$ `User Login` $\rightarrow$ `Server Validates Credentials` $\rightarrow$ `Server Issues JWT` $\rightarrow$ `Client Stores Token` $\rightarrow$ `Client Sends Token in Header` $\rightarrow$ `Server Validates JWT` $\rightarrow$ `Access Granted`
+### 🛡 Security Implementation (Anti-BOLA)
+To prevent **Broken Object Level Authorization (BOLA)**, the system implements the following guards:
+- **Filter-Level Isolation**: `getAllTasks` now uses a mandatory join on the `User` entity to ensure no tasks from external teams are leaked.
+- **Ownership Verification**: Every call to `getTaskById`, `updateTask`, and `deleteTask` triggers a `verifyTeamMembership` check.
+- **Assignment Validation**: The `assignTask` logic verifies the assignee's membership in the team before updating the record.
 
 ---
 
@@ -79,12 +82,6 @@ TaskMaster follows a **Layered Architecture** pattern to ensure separation of co
 - `PATCH /api/tasks/{id}/assign` - Change the task assignee.
 - `PATCH /api/tasks/{id}/generate-description` - Use AI to expand a task title into a description.
 
-### Collaboration Tools
-- `POST /api/tasks/{id}/comments` - Post a comment to a task.
-- `GET /api/tasks/{id}/comments` - Retrieve task discussion history.
-- `POST /api/tasks/{id}/attachments` - Upload a resource file to a task.
-- `GET /api/tasks/{id}/attachments` - List all files attached to a task.
-
 ---
 
 ## ⚙️ Installation & Execution
@@ -112,23 +109,19 @@ TaskMaster follows a **Layered Architecture** pattern to ensure separation of co
 ### 1. Functional API Testing (Postman)
 **Crucial Setup**: Set **Body** $\rightarrow$ **raw** $\rightarrow$ **JSON** for all POST/PUT requests.
 
-- **User Journey**:
-    1. **Register**: `POST /api/auth/register` $\rightarrow$ Create account.
-    2. **Login**: `POST /api/auth/login` $\rightarrow$ Copy the returned **JWT Token**.
-    3. **Authorization**: In Postman, go to **Authorization** $\rightarrow$ **Bearer Token** $\rightarrow$ Paste the token.
-    4. **Team Creation**: `POST /api/teams` $\rightarrow$ Create a team and copy the `id`.
-    5. **Task Creation**: `POST /api/tasks` $\rightarrow$ Create a task using the Team ID.
+- **Basic Journey**: Register $\rightarrow$ Login (Copy Token) $\rightarrow$ Set Bearer Token $\rightarrow$ Create Team $\rightarrow$ Create Task.
 
-### 2. Database Inspection (H2 Console)
-Verify data persistence visually:
+### 2. Security Verification (Anti-BOLA Tests)
+To verify the security guards, perform these tests:
+- **Privacy Test**: Login as User A. Call `GET /api/tasks`. Verify you **cannot** see tasks created by User B in a different team.
+- **Ownership Test**: Use User A's token to call `GET /api/tasks/{id}` using a Task ID from User B's team. Expected: **403 Forbidden**.
+- **Assignment Test**: Try to assign a task to a user who is not a member of that task's team. Expected: **Error/Bad Request**.
+
+### 3. Database Inspection (H2 Console)
 - **URL**: `http://localhost:8080/h2-console`
 - **JDBC URL**: `jdbc:h2:mem:taskmasterdb`
 - **Driver**: `org.h2.Driver`
-- **User**: `sa` | **Password**: (leave empty)
-- **Queries to run**:
-  - `SELECT * FROM USERS;`
-  - `SELECT * FROM TEAMS;`
-  - `SELECT * FROM TASKS;`
+- **User**: `sa` | **Password**: (empty)
 
 ---
 
@@ -136,7 +129,7 @@ Verify data persistence visually:
 ```text
 src/main/java/com/taskmaster/
 ├── controller/      # Request handling & API endpoints
-├── service/          # Business logic & Orchestration
+├── service/          # Business logic & Security Guards
 ├── repository/       # Data access layer (Spring Data JPA)
 ├── model/           # Domain entities (User, Task, Team, etc.)
 ├── security/        # JWT, SecurityConfig, UserDetailsService
