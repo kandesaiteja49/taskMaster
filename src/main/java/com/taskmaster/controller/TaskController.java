@@ -55,21 +55,28 @@ public class TaskController {
 
     @GetMapping
     public ResponseEntity<Page<Task>> getAllTasks(
+            Authentication authentication,
             @RequestParam(required = false) UUID assigneeId,
             @RequestParam(required = false) Task.Status status,
             @RequestParam(required = false) UUID teamId,
             @RequestParam(required = false) String search,
             Pageable pageable) {
-        return ResponseEntity.ok(taskService.getAllTasks(assigneeId, status, teamId, search, pageable));
+        User user = userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(taskService.getAllTasks(user, assigneeId, status, teamId, search, pageable));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Task> getTask(@PathVariable UUID id) {
-        return ResponseEntity.ok(taskService.getTaskById(id));
+    public ResponseEntity<Task> getTask(@PathVariable UUID id, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(taskService.getTaskById(id, user));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@PathVariable UUID id, @RequestBody TaskRequest request) {
+    public ResponseEntity<Task> updateTask(@PathVariable UUID id, @RequestBody TaskRequest request, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
         Task task = Task.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -77,23 +84,29 @@ public class TaskController {
                 .status(request.getStatus())
                 .priority(request.getPriority())
                 .build();
-        return ResponseEntity.ok(taskService.updateTask(id, task));
+        return ResponseEntity.ok(taskService.updateTask(id, task, user));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTask(@PathVariable UUID id) {
-        taskService.deleteTask(id);
+    public ResponseEntity<Void> deleteTask(@PathVariable UUID id, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        taskService.deleteTask(id, user);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/assign")
-    public ResponseEntity<Task> assignTask(@PathVariable UUID id, @RequestParam UUID userId) {
-        return ResponseEntity.ok(taskService.assignTask(id, userId));
+    public ResponseEntity<Task> assignTask(@PathVariable UUID id, @RequestParam UUID userId, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(taskService.assignTask(id, userId, user));
     }
 
     @PatchMapping("/{id}/generate-description")
-    public ResponseEntity<String> generateDescription(@PathVariable UUID id) {
-        Task task = taskService.getTaskById(id);
+    public ResponseEntity<String> generateDescription(@PathVariable UUID id, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Task task = taskService.getTaskById(id, user);
         return ResponseEntity.ok(aiTaskService.generateDescription(task.getTitle()));
     }
 }

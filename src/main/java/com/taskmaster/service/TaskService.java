@@ -32,8 +32,10 @@ public class TaskService {
         return taskRepository.save(task);
     }
 
-    public Page<Task> getAllTasks(UUID assigneeId, Task.Status status, UUID teamId, String search, Pageable pageable) {
-        Specification<Task> spec = Specification.where(null);
+    public Page<Task> getAllTasks(User user, UUID assigneeId, Task.Status status, UUID teamId, String search, Pageable pageable) {
+        Specification<Task> spec = Specification.where((root, query, cb) -> {
+            return root.join("team").join("members").contains(user);
+        });
 
         if (assigneeId != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("assignee").get("id"), assigneeId));
@@ -56,14 +58,22 @@ public class TaskService {
         return taskRepository.findAll(spec, pageable);
     }
 
-    public Task getTaskById(UUID id) {
-        return taskRepository.findById(id)
+    public Task getTaskById(UUID id, User user) {
+        Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
+        verifyTeamMembership(task, user);
+        return task;
+    }
+
+    private void verifyTeamMembership(Task task, User user) {
+        if (!task.getTeam().getMembers().contains(user)) {
+            throw new org.springframework.security.access.AccessDeniedException("You do not have permission to access this task as you are not a member of the team.");
+        }
     }
 
     @Transactional
-    public Task updateTask(UUID id, Task taskDetails) {
-        Task task = getTaskById(id);
+    public Task updateTask(UUID id, Task taskDetails, User user) {
+        Task task = getTaskById(id, user);
 
         if (taskDetails.getTitle() != null) task.setTitle(taskDetails.getTitle());
         if (taskDetails.getDescription() != null) task.setDescription(taskDetails.getDescription());
@@ -75,21 +85,25 @@ public class TaskService {
     }
 
     @Transactional
-    public void deleteTask(UUID id) {
-        Task task = getTaskById(id);
+    public void deleteTask(UUID id, User user) {
+        Task task = getTaskById(id, user);
         taskRepository.delete(task);
     }
 
     @Transactional
-    public Task assignTask(UUID taskId, UUID userId) {
-        Task task = getTaskById(taskId);
-        User user = userRepository.findById(userId)
+    public Task assignTask(UUID taskId, UUID userId, User user) {
+        Task task = getTaskById(taskId, user);
+        User assignee = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        task.setAssignee(user);
+        if (!task.getTeam().getMembers().contains(assignee)) {
+            throw new IllegalArgumentException("The user must be a member of the team to be assigned to the task.");
+        }
+
+        task.setAssignee(assignee);
         Task savedTask = taskRepository.save(task);
 
-        notificationService.notifyUser(user.getUsername(), "You have been assigned to task: " + task.getTitle());
+        notificationService.notifyUser(assignee.getUsername(), "You have been assigned to task: " + task.getTitle());
 
         return savedTask;
     }
